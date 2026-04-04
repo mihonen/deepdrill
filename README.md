@@ -1,6 +1,10 @@
-# deepdrill
+<div align="center">
+
+# 🔩 deepdrill
 
 LLM-powered web scraper for extracting structured data from any webpage — with minimal token usage.
+
+</div>
 
 ```
 go get github.com/mihonen/deepdrill
@@ -195,4 +199,4 @@ Deeply nested single-child divs collapse to their content. Groups with mixed con
 
 ## License
 
-MIT
+Apache-2.0
