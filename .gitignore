@@ -1,0 +1,13 @@
+# Environment
+.env
+
+# macOS
+.DS_Store
+
+# Binaries
+cmd/deepdrill
+cmd/github/github
+deepdrill
+
+# Go build cache
+*.test
