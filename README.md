@@ -1,9 +1,9 @@
 <div align="center">
 
-# 🔩 deepdrill
+# DeepDrill
 
 LLM-powered web scraper for extracting structured data from any webpage — with minimal token usage.
-
+<br/><br/><br/>
 </div>
 
 ```
