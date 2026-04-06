@@ -17,11 +17,36 @@ var (
 		"input": true,
 	}
 	semanticTags = map[string]bool{
-		"p": true, "span": true, "h1": true, "h2": true, "h3": true,
-		"h4": true, "h5": true, "h6": true,
-	    "td": true, "th": true, "time": true,
-		"figcaption": true, "blockquote": true, "article": true,
-		"form": true,
+		// headings
+		"h1": true, "h2": true, "h3": true, "h4": true, "h5": true, "h6": true,
+		// block text
+		"p": true, "pre": true, "blockquote": true,
+		// inline text — formatting & annotation
+		"span": true, "b": true, "i": true, "em": true, "strong": true,
+		"u": true, "s": true, "del": true, "ins": true,
+		"small": true, "big": true, "mark": true,
+		"sub": true, "sup": true,
+		// inline text — semantic
+		"abbr": true, "acronym": true, "cite": true, "dfn": true,
+		"kbd": true, "samp": true, "var": true, "code": true,
+		"q": true, "bdi": true, "bdo": true,
+		// ruby annotations
+		"ruby": true, "rt": true, "rp": true,
+		// data / time
+		"time": true, "data": true,
+		// definition lists
+		"dt": true, "dd": true,
+		// list items
+		"li": true,
+		// table cells
+		"td": true, "th": true, "caption": true,
+		// sectioning with content
+		"article": true, "section": true, "aside": true,
+		// interactive / form labels
+		"summary": true, "label": true, "legend": true, "output": true,
+		"option": true, "textarea": true,
+		// figures & media annotation
+		"figcaption": true,
 	}
 )
 
@@ -137,12 +162,23 @@ func (t *SemanticTree) Split(maxNodes int) []*SemanticTree {
 	var chunks []*SemanticTree
 	
 	var traverse func(node *SemanticNode)
+	// wrap wraps a node in a synthetic group root so that HTMLString/String
+	// (which render root.Children, not root itself) correctly emit the node.
+	// Nodes that are already synthetic containers (group with no content/attrs)
+	// are used as-is since their children are what we want to render.
+	wrap := func(node *SemanticNode) *SemanticTree {
+		if node.Type == "group" && node.Content == "" && len(node.Attrs) == 0 {
+			return &SemanticTree{Root: node}
+		}
+		return &SemanticTree{Root: &SemanticNode{Type: "group", Children: []*SemanticNode{node}}}
+	}
+
 	traverse = func(node *SemanticNode) {
 		if node == nil {
 			return
 		}
 		if node.Count() <= maxNodes {
-			chunks = append(chunks, &SemanticTree{Root: node})
+			chunks = append(chunks, wrap(node))
 			return
 		}
 
@@ -153,7 +189,7 @@ func (t *SemanticTree) Split(maxNodes int) []*SemanticTree {
 				Attrs:      node.Attrs,
 				OriginalID: node.OriginalID,
 			}
-			chunks = append(chunks, &SemanticTree{Root: hollow})
+			chunks = append(chunks, wrap(hollow))
 		}
 
 		for _, child := range node.Children {

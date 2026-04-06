@@ -13,10 +13,12 @@ type Schema     = engine.Schema
 type Options    = engine.Options
 
 const (
-    FieldTypeText  = engine.FieldTypeText
-    FieldTypeLink  = engine.FieldTypeLink
-    FieldTypeImage = engine.FieldTypeImage
-    FieldTypeValue = engine.FieldTypeValue
+    FieldTypeText   = engine.FieldTypeText
+    FieldTypeLink   = engine.FieldTypeLink
+    FieldTypeImage  = engine.FieldTypeImage
+    FieldTypeValue  = engine.FieldTypeValue
+    FieldTypeList   = engine.FieldTypeList
+    FieldTypeCustom = engine.FieldTypeCustom
 )
 
 var defaultEngine *engine.Engine
