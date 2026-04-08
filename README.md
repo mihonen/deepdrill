@@ -194,6 +194,8 @@ Deeply nested single-child divs collapse to their content. Groups with mixed con
 
 - [ ] **Heuristic caching** — after extraction, match result values back to their node IDs to build reusable path heuristics. Cache them keyed by schema + page skeleton (SQLite). Same site structure on a future run? Skip the LLM entirely.
 - [ ] **Recursive depth** — follow extracted links and scrape sub-pages automatically
+- [ ] **Reranker step before LLM call** — as with https://arxiv.org/pdf/2411.02959, before LLM call, perform a reranker step to prune out parts which are unlikely to answer the query
+- [ ] **Fine-tuned small model** — once heuristic cache has enough (schema, subtree, result) triples, use them as training data to fine-tune a small model (Qwen 0.6B?) to replace or pre-filter the LLM call entirely. Cache generates the dataset automatically.
 
 ---
 
