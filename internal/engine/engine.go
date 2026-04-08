@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-
 	"github.com/PuerkitoBio/goquery"
 	"github.com/sashabaranov/go-openai"
 )
@@ -85,6 +84,7 @@ func (e *Engine) ExecuteFromDoc(ctx context.Context, schema Schema, doc *goquery
 			if strings.TrimSpace(st.HTMLString()) == "" {
 				return
 			}
+
 
 			extracted, err := e.extract(ctx, st.HTMLString(), schema.String())
 			if err != nil {

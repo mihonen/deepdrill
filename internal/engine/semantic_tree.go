@@ -17,36 +17,16 @@ var (
 		"input": true,
 	}
 	semanticTags = map[string]bool{
-		// headings
-		"h1": true, "h2": true, "h3": true, "h4": true, "h5": true, "h6": true,
-		// block text
-		"p": true, "pre": true, "blockquote": true,
-		// inline text — formatting & annotation
-		"span": true, "b": true, "i": true, "em": true, "strong": true,
-		"u": true, "s": true, "del": true, "ins": true,
-		"small": true, "big": true, "mark": true,
-		"sub": true, "sup": true,
-		// inline text — semantic
-		"abbr": true, "acronym": true, "cite": true, "dfn": true,
-		"kbd": true, "samp": true, "var": true, "code": true,
-		"q": true, "bdi": true, "bdo": true,
-		// ruby annotations
-		"ruby": true, "rt": true, "rp": true,
-		// data / time
-		"time": true, "data": true,
-		// definition lists
-		"dt": true, "dd": true,
-		// list items
-		"li": true,
-		// table cells
-		"td": true, "th": true, "caption": true,
-		// sectioning with content
-		"article": true, "section": true, "aside": true,
-		// interactive / form labels
-		"summary": true, "label": true, "legend": true, "output": true,
-		"option": true, "textarea": true,
-		// figures & media annotation
-		"figcaption": true,
+	    "h1": true, "h2": true, "h3": true, "h4": true, "h5": true, "h6": true,
+	    "p": true, "pre": true, "blockquote": true,
+	    "span": true, "b": true, "i": true, "em": true, "strong": true,
+	    "time": true, "data": true,
+	    "td": true, "th": true, "caption": true,
+	    "figcaption": true,
+	    "label": true, "summary": true,
+	    "dt": true, "dd": true,
+	    "code": true, "kbd": true, "samp": true,
+	    "a": true, "img": true, "video": true, "button": true, "source": true,
 	}
 )
 
@@ -64,18 +44,6 @@ type SemanticTree struct {
 	Root *SemanticNode
 }
 
-func (n *SemanticNode) Value(nodeType string) string {
-    switch nodeType {
-    case "link":
-        return n.Attrs["href"]
-    case "src":
-        return n.Attrs["src"]
-    case "datetime":
-        return n.Attrs["datetime"]
-    default:
-        return n.Content
-    }
-}
 
 func (t *SemanticTree) String() string {
 	var sb strings.Builder
@@ -117,29 +85,25 @@ func renderHTMLNode(sb *strings.Builder, node *SemanticNode, depth int, index st
 
 func htmlTag(node *SemanticNode) string {
 	switch node.Type {
-	case "link":
-		return "a"
 	case "group":
 		return "div"
-	case "image":
-		return "img"
 	default:
-		return string(node.Type) // p, span, h1, h2, time, figcaption, etc.
+		return string(node.Type)
 	}
 }
 
 func htmlAttrs(node *SemanticNode, index string) string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(` id="%s"`, index))
-	switch node.Type {
-	case "link":
-		sb.WriteString(fmt.Sprintf(` href="%s"`, node.Attrs["href"]))
-	case "image":
-		sb.WriteString(fmt.Sprintf(` src="%s" alt="%s"`, node.Attrs["src"], node.Attrs["alt"]))
-	case "time":
-		sb.WriteString(fmt.Sprintf(` datetime="%s"`, node.Attrs["datetime"]))
-	}
-	return sb.String()
+    var sb strings.Builder
+    sb.WriteString(fmt.Sprintf(` id="%s"`, index))
+    keys := make([]string, 0, len(node.Attrs))
+    for k := range node.Attrs {
+        keys = append(keys, k)
+    }
+    sort.Strings(keys)
+    for _, k := range keys {
+        sb.WriteString(fmt.Sprintf(` %s="%s"`, k, node.Attrs[k]))
+    }
+    return sb.String()
 }
 
 func (t *SemanticTree) Skeleton() string {
@@ -162,23 +126,12 @@ func (t *SemanticTree) Split(maxNodes int) []*SemanticTree {
 	var chunks []*SemanticTree
 	
 	var traverse func(node *SemanticNode)
-	// wrap wraps a node in a synthetic group root so that HTMLString/String
-	// (which render root.Children, not root itself) correctly emit the node.
-	// Nodes that are already synthetic containers (group with no content/attrs)
-	// are used as-is since their children are what we want to render.
-	wrap := func(node *SemanticNode) *SemanticTree {
-		if node.Type == "group" && node.Content == "" && len(node.Attrs) == 0 {
-			return &SemanticTree{Root: node}
-		}
-		return &SemanticTree{Root: &SemanticNode{Type: "group", Children: []*SemanticNode{node}}}
-	}
-
 	traverse = func(node *SemanticNode) {
 		if node == nil {
 			return
 		}
 		if node.Count() <= maxNodes {
-			chunks = append(chunks, wrap(node))
+			chunks = append(chunks, &SemanticTree{Root: node})
 			return
 		}
 
@@ -189,7 +142,7 @@ func (t *SemanticTree) Split(maxNodes int) []*SemanticTree {
 				Attrs:      node.Attrs,
 				OriginalID: node.OriginalID,
 			}
-			chunks = append(chunks, wrap(hollow))
+			chunks = append(chunks, &SemanticTree{Root: hollow})
 		}
 
 		for _, child := range node.Children {
@@ -248,6 +201,32 @@ func CreateSemanticTree(doc *goquery.Document) *SemanticTree {
 	return &SemanticTree{Root: root}
 }
 
+var keepAttrs = map[string]bool{
+    "href":       true,
+    "src":        true,
+    "alt":        true,
+    "datetime":   true,
+    "poster":     true,
+    "type":       true,
+    "action":     true,
+    "method":     true,
+    "title":      true,
+    "aria-label": true,
+    "placeholder":true,
+    "value":      true,
+    "label":      true,
+}
+
+func getAttrs(s *goquery.Selection) map[string]string {
+    attrs := map[string]string{}
+    for _, attr := range s.Get(0).Attr {
+        if keepAttrs[attr.Key] {
+            attrs[attr.Key] = attr.Val
+        }
+    }
+    return attrs
+}
+
 func walkTree(s *goquery.Selection) ([]*SemanticNode, bool) {
 	tag := goquery.NodeName(s)
 
@@ -255,80 +234,15 @@ func walkTree(s *goquery.Selection) ([]*SemanticNode, bool) {
 		return nil, false
 	}
 
-	href, hasHref := s.Attr("href")
-	src, hasSrc := s.Attr("src")
-	poster, _ := s.Attr("poster")
-	alt, _ := s.Attr("alt")
-	datetime, _ := s.Attr("datetime")
 
 	directText := strings.TrimSpace(s.Clone().Children().Remove().End().Text())
 
 	switch {
-	case tag == "a" && hasHref:
-		node := &SemanticNode{
-			Type:    "link",
-			Content: directText,
-			Attrs:   map[string]string{"href": href},
-		}
-		s.Children().Each(func(i int, child *goquery.Selection) {
-			childNodes, _ := walkTree(child)
-			node.Children = append(node.Children, childNodes...)
-		})
-		return []*SemanticNode{node}, true
-
-	case tag == "img":
-		return []*SemanticNode{{
-			Type:  "image",
-			Attrs: map[string]string{"src": src, "alt": alt},
-		}}, true
-
-	case tag == "time":
-		return []*SemanticNode{{
-			Type:    "time",
-			Content: strings.TrimSpace(s.Text()),
-			Attrs:   map[string]string{"datetime": datetime},
-		}}, true
-
-	case tag == "figcaption":
-		text := strings.TrimSpace(s.Text())
-		if text == "" {
-			return nil, false
-		}
-		return []*SemanticNode{{
-			Type:    "figcaption",
-			Content: text,
-		}}, true
-
-	case tag == "video":
-		node := &SemanticNode{Type: "video", Attrs: map[string]string{}}
-		if hasSrc && src != "" {
-			node.Attrs = map[string]string{"src": src, "poster": poster}
-			return []*SemanticNode{node}, true
-		}
-		s.Find("source").Each(func(i int, source *goquery.Selection) {
-			if i > 0 {
-				return
-			}
-			srcVal, _ := source.Attr("src")
-			typeVal, _ := source.Attr("type")
-			if srcVal != "" {
-				node.Attrs = map[string]string{"src": srcVal, "type": typeVal, "poster": poster}
-			}
-		})
-		return []*SemanticNode{node}, true
-
-	case tag == "button":
-		text := strings.TrimSpace(s.Text())
-		if text == "" {
-			return nil, false
-		}
-		return []*SemanticNode{{
-			Type:    "button",
-			Content: text,
-		}}, true
 
 	case semanticTags[tag]:
-	    node := &SemanticNode{Type: NodeType(tag)}
+
+		attrs := getAttrs(s)
+	    node := &SemanticNode{Type: NodeType(tag), Attrs:   attrs}
 	    if directText != "" {
 	        node.Content = directText
 	    }
@@ -336,7 +250,7 @@ func walkTree(s *goquery.Selection) ([]*SemanticNode, bool) {
 	        childNodes, _ := walkTree(child)
 	        node.Children = append(node.Children, childNodes...)
 	    })
-	    if node.Content == "" && len(node.Children) == 0 {
+	    if node.Content == "" && len(node.Children) == 0 && len(attrs) == 0{
 	        return nil, false
 	    }
 	    return []*SemanticNode{node}, true

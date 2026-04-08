@@ -115,12 +115,12 @@ func TestSemanticTree3(t *testing.T){
 
 
 	expected := `[group][0]
-  [link href=/home][00]
+  [a href=/home][00]
     [group][000] Home
-  [link href=/about][01]
+  [a href=/about][01]
     [group][010] About
 [group][1]
-  [image alt=this is not a real image src=example.com/img/1.jpeg][10]
+  [img alt=this is not a real image src=example.com/img/1.jpeg][10]
   [group][11]
     [p][110] hola
     [p][111] mista
@@ -203,23 +203,23 @@ func TestSemanticTree4(t *testing.T) {
 	</div>
 	`
 	expected := `[group][0]
-  [link href=/][00]
+  [a href=/][00]
     [span][000] Logo
   [group][01]
-    [link href=/products][010] Products
-    [link href=/about][011] About
+    [a href=/products][010] Products
+    [a href=/about][011] About
 [group][1]
   [h1][10] Welcome to our site
   [p][11] We make great things
 [group][2]
   [time datetime=2024-01-01][20] January 1st
-  [link href=/author/john][21] John Doe
+  [a href=/author/john][21] John Doe
 [group][3]
   [h2][30] First Article
   [p][31] Some intro text here
     [span][310] with emphasis
   [group][32]
-    [image alt=Article image src=article1.jpg][320]
+    [img alt=Article image src=article1.jpg][320]
     [figcaption][321] This is the caption
 [group][4]
   [time datetime=2024-01-02][40] January 2nd
@@ -227,7 +227,8 @@ func TestSemanticTree4(t *testing.T) {
     [h2][410] Second Article
     [p][411] Another piece
       [span][4110] interesting
-    [video poster= src=video.mp4 type=video/mp4][412]`
+    [video][412]
+      [source src=video.mp4 type=video/mp4][4120]`
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
@@ -241,5 +242,49 @@ func TestSemanticTree4(t *testing.T) {
 }
 
 
+
+func TestSemanticTree5(t *testing.T) {
+	html := `
+	<html>
+	<head>
+	<h1>Bellagio Hotel in Las</h1>
+	</head>
+	<body>
+	<p class="class0">The Bellagio is a luxury hotel and casino located on the Las Vegas Strip in Paradise, Nevada. It was built in 1998.</p>
+	</body>
+	<div>
+	<div>
+	<p>Some other text</p>
+	<p>Some other text</p>
+	</div>
+	</div>
+	<p class="class1"></p>
+	<!-- Some comment -->
+	<script type="text/javascript">
+	document.write("Hello World!");
+	</script>
+	</html>`
+
+
+	expected := `<div id="0">
+  <h1 id="00">Bellagio Hotel in Las</h1>
+  <p id="01">The Bellagio is a luxury hotel and casino located on the Las Vegas Strip in Paradise, Nevada. It was built in 1998.</p>
+  <div id="02">
+    <p id="020">Some other text</p>
+    <p id="021">Some other text</p>
+  </div>
+</div>`
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err != nil {
+		t.Fatalf("failed to parse html: %v", err)
+	}
+
+	result := CreateSemanticTree(doc).HTMLString()
+	if result != expected {
+		t.Errorf("Expected:\n%s\n\n Got:\n%s", expected, result)
+	}
+
+}
 
 
