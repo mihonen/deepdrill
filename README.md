@@ -1,7 +1,7 @@
 <div align="center">
 
 
-<img src="assets/deepdrill.png" width="200"/>
+<img src="assets/deepdrill_inv.png" width="200"/>
 
 # DeepDrill
 
